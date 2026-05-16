@@ -1,209 +1,189 @@
-# FOX M4 - Hướng dẫn Khởi động và Nạp Code (Build & Flash)
+# FOX M4 — Hướng dẫn Build & Flash (Prototype 2-Board)
 
-Dự án FOX M4 sử dụng kiến trúc **Dual-MCU** (hai vi điều khiển phối hợp) để tối ưu hóa hiệu năng xử lý âm thanh và kết nối Bluetooth. Tài liệu này hướng dẫn cách thiết lập môi trường và nạp code cho cả hai chip.
-
----
-
-## 1. Tổng quan Kiến trúc
-
-| Thành phần | Chip | Vai trò chính |
-|------------|------|---------------|
-| **Main MCU** | ESP32-P4 | Xử lý DSP, trộn âm thanh (Mixer), điều khiển màn hình UI, quản lý nguồn. |
-| **BT Companion** | ESP32-WROOM-32E | Nhận tín hiệu Bluetooth A2DP, chuyển tiếp âm thanh qua I2S tới Main MCU. |
+Phiên bản prototype chỉ dùng **2 board**: ESP32-P4-WiFi6-DEV-KIT (Waveshare) và ESP32-WROOM-32E.
 
 ---
 
-## 2. Chuẩn bị Môi trường
+## 1. Tổng quan Kiến trúc Prototype
 
-Dự án yêu cầu **ESP-IDF phiên bản v5.2 trở lên**.
+```
+[Điện thoại/PC]
+    │  Bluetooth A2DP
+    ▼
+[ESP32-WROOM-32E] ── I2S Slave TX ──► [ESP32-P4-WiFi6-DEV-KIT]
+  BT A2DP Sink        44.1kHz 16-bit    I2S Master RX (I2S2)
+  "FOX-M4-AUDIO"      stereo PCM             │
+                                             │ I2S0 Master TX
+                                             ▼
+                                       [ES8388 Codec]  ← on-board
+                                             │
+                                             ▼
+                                      3.5mm AUDIO Jack (J1)
+```
 
-### Bước 1: Cài đặt ESP-IDF
-Nếu chưa có môi trường, hãy tải và cài đặt theo hướng dẫn chính thức của Espressif:
-- [ESP-IDF Installation Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html)
+| Board | Chip | Vai trò |
+|---|---|---|
+| **ESP32-P4-WiFi6-DEV-KIT** | ESP32-P4 | I2S Master, điều khiển ES8388, phát ra 3.5mm |
+| **ESP32-WROOM-32E** | ESP32 | BT A2DP Sink, I2S Slave TX sang ESP32-P4 |
 
-### Bước 2: Thiết lập Biến môi trường
-Trước khi build, bạn cần "source" môi trường ESP-IDF trong terminal:
+---
 
-**Windows (PowerShell):**
+## 2. Kết nối Phần cứng
+
+### 2.1 Kênh I2S Audio (ESP32-WROOM-32E → ESP32-P4)
+
+> ESP32-P4 là **I2S Master** (phát BCK + WS). ESP32-WROOM-32E là **I2S Slave** (nhận clock, phát dữ liệu).
+
+| ESP32-WROOM-32E | Dây nối | ESP32-P4-WiFi6-DEV-KIT | Tín hiệu |
+|:---|:---:|:---|:---|
+| **GPIO26** | ←── | **GPIO46** (header P6) | I2S BCK (clock, từ P4 → ESP32) |
+| **GPIO25** | ←── | **GPIO47** (header P6) | I2S WS/LRCK (word select, từ P4 → ESP32) |
+| **GPIO22** | ──► | **GPIO53** (header P6) | I2S DOUT data (từ ESP32 → P4) |
+| **GND** | ──── | **GND** | Chân đất chung |
+
+**Lưu ý**: Trên header P6 của Waveshare board:
+- Hàng trên: `...GND 46 27 45`
+- Hàng dưới: `...48 53 47 GND`
+
+### 2.2 Kênh UART Điều khiển (ESP32-P4 → ESP32-WROOM-32E)
+
+> Dùng để gửi lệnh BT_ON / BT_OFF / VOL_SET. Không bắt buộc cho luồng audio cơ bản.
+
+| ESP32-P4-WiFi6-DEV-KIT | Dây nối | ESP32-WROOM-32E | Tín hiệu |
+|:---|:---:|:---|:---|
+| **GPIO26** (UART1 TX) | ──► | **GPIO16** (UART1 RX) | Lệnh điều khiển P4 → ESP32 |
+| **GPIO24** (UART1 RX) | ←── | **GPIO17** (UART1 TX) | ACK/Status ESP32 → P4 |
+| **GND** | ──── | **GND** | Chân đất chung |
+
+> **Chú ý**: GPIO26 được dùng cho UART1 TX (ESP32-P4) — **không nối đồng thời với I2S BCK** (GPIO46 là BCK). Hai tín hiệu này nằm trên các chân khác nhau.
+
+---
+
+## 3. Thông tin Jack 3.5mm (J1 – AUDIO) trên Waveshare ESP32-P4-WiFi6-DEV-KIT
+
+Từ schematic `ESP32-P4-WIFI6-DEV-KIT-datasheet.pdf`:
+
+- **J1** (nhãn "AUDIO" trên PCB) là jack TRS 3.5mm headphone.
+- Kết nối với **ES8388** codec (on-board) qua đường analog:
+  - **Tip (L)**: ES8388 HPOUT1L → tụ lọc → J1 Tip
+  - **Ring (R)**: ES8388 HPOUT1R → tụ lọc → J1 Ring
+  - **Sleeve**: GND
+
+### Chân ESP32-P4 kết nối ES8388 (I2S0 — bên trong board, không cần dây ngoài):
+
+| ESP32-P4 GPIO | Chức năng I2S0 | ES8388 Pin | Mô tả |
+|:---|:---|:---|:---|
+| **GPIO20** | MCLK out | MCLK | 11.2896 MHz (= 256 × 44100) |
+| **GPIO21** | BCLK out | SCLK | Bit clock từ ESP32-P4 |
+| **GPIO22** | WS/LRCK out | LRCK | Word select từ ESP32-P4 |
+| **GPIO25** | DOUT (data ra) | SDIN | Dữ liệu PCM ESP32-P4 → ES8388 (playback) |
+| **GPIO23** | DIN (data vào) | SDOUT | ES8388 → ESP32-P4 (ADC/record, không dùng trong prototype) |
+| **GPIO7** | I2C SDA | SDA | Cấu hình ES8388 qua I2C |
+| **GPIO8** | I2C SCL | SCL | Cấu hình ES8388 qua I2C |
+
+> Tất cả kết nối I2S0 ↔ ES8388 đều nằm bên trong board Waveshare — **không cần dây ngoài**. Chỉ cần cắm jack 3.5mm vào J1.
+
+---
+
+## 4. Chuẩn bị Môi trường
+
+Yêu cầu **ESP-IDF v5.2+**.
+
 ```powershell
+# Windows PowerShell
 . $HOME\esp\esp-idf\export.ps1
 ```
 
-**Linux/WSL/macOS:**
 ```bash
+# Linux/WSL/macOS
 source ~/esp-idf/export.sh
 ```
 
-### 2.3. Cách xác định và chỉ định Cổng Serial (Port)
-
-Trước khi nạp code, bạn cần xác định chip đang kết nối với máy tính qua cổng nào.
-
-#### Cách tìm Port trên Windows:
-1. Mở **Device Manager** -> **Ports (COM & LPT)**.
-2. Tìm thiết bị có tên như " USB Serial Device" hoặc "USB-SERIAL CH340". Ghi lại số COM (ví dụ: `COM3`, `COM5`).
-3. Hoặc dùng PowerShell: `Get-WMIObject Win32_SerialPort | Select-Object Name, DeviceID`
-
-#### Cách tìm Port trên Linux / WSL:
-1. Chạy lệnh: `ls /dev/ttyUSB*` hoặc `ls /dev/ttyACM*`.
-2. Thông thường sẽ là `/dev/ttyUSB0`, `/dev/ttyUSB1`.
-3. Nếu dùng WSL, bạn cần công cụ **usbipd-win** để gắn (attach) cổng COM từ Windows vào môi trường Linux.
-
-#### Hướng dẫn Attach Port cho WSL (Dành cho máy ảo/WSL):
-**Lưu ý quan trọng:** Các lệnh `usbipd` bên dưới phải được chạy trên **PowerShell (Admin)** của **Windows**, không phải chạy bên trong terminal WSL.
-
-1. **Liệt kê danh sách thiết bị (Windows PowerShell):**
-   ```powershell
-   usbipd list
-   ```
-   Tìm thiết bị có BUSID tương ứng với "USB Serial Device" hoặc "CH340".
-
-2. **Bind thiết bị (chỉ làm lần đầu):**
-   ```powershell with admin
-   usbipd bind --busid <BUSID>
-   ```
-
-3. **Attach thiết bị vào WSL:**
-   ```powershell with admin
-   usbipd attach --wsl --busid <BUSID>
-   ```úb
-
-4. **Kiểm tra trong WSL:**
-   Mở terminal WSL và chạy `ls /dev/ttyUSB*`. Nếu thấy xuất hiện cổng (ví dụ `/dev/ttyUSB0`) là đã thành công.
-
-5. **Cấp quyền truy cập cổng (Chỉ làm 1 lần trên WSL):**
-   Nếu gặp lỗi `Path '/dev/ttyUSB0' is not readable`, bạn cần cấp quyền cho user hiện tại:
-   ```bash
-   sudo usermod -aG dialout $USER
-   ```
-   *Sau đó hãy khởi động lại WSL (hoặc log out và log in lại) để quyền có hiệu lực.*
-
-*Lưu ý: Bạn phải giữ PowerShell mở hoặc thiết bị sẽ bị detach khi rút cáp.*
-
-#### Cách trỏ Port khi Flash:
-Sử dụng tham số `-p` (hoặc `--port`) theo sau là tên cổng bạn vừa tìm được:
-- Windows: `idf.py -p COM3 flash`
-- Linux/WSL: `idf.py -p /dev/ttyUSB0 flash`
-
 ---
 
-## 3. Quy trình Build và Flash cho ESP32-P4 (Main MCU)
+## 5. Build & Flash ESP32-P4 (Main MCU)
 
-Thư mục: `C_code/micro-fox-m4-esp32p4-main`
-
-### 3.1. Thiết lập Target
 ```bash
-cd C_code/micro-fox-m4-esp32p4-main
+cd C_code/micro-fox-m4-esp32p4
 idf.py set-target esp32p4
-```
-
-### 3.2. Build Code
-```bash
 idf.py build
-```
-
-### 3.3. Flash và Giám sát (Monitor)
-Thay `PORT` bằng cổng COM tương ứng (ví dụ: `COM3` trên Windows hoặc `/dev/ttyUSB0` trên Linux).
-```bash
-idf.py -p PORT flash monitor
+idf.py -p <PORT> flash monitor
 ```
 
 ---
 
-## 4. Quy trình Build và Flash cho ESP32-WROOM (Bluetooth Companion)
+## 6. Build & Flash ESP32-WROOM-32E (Bluetooth Companion)
 
-Thư mục: `C_code/micro-fox-m4-esp32-bluetooth`
-
-### 4.1. Thiết lập Target
 ```bash
-cd C_code/micro-fox-m4-esp32-bluetooth
+cd C_code/micro-fox-esp32-bluetooth
 idf.py set-target esp32
-```
-
-### 4.2. Build Code
-```bash
 idf.py build
+idf.py -p <PORT> flash monitor
 ```
 
-### 4.3. Flash và Giám sát (Monitor)
+> **Lưu ý menuconfig BT**: Vào `idf.py menuconfig` → Component config → Bluetooth → Bluetooth controller → Controller Mode → chọn **BR/EDR Only** (hoặc Dual Mode). Sau đó `idf.py fullclean && idf.py build`.
+
+---
+
+## 7. Xác định Cổng Serial (COM Port)
+
+**Windows**: Device Manager → Ports (COM & LPT) → ghi lại COM số.
+
+```powershell
+Get-WMIObject Win32_SerialPort | Select-Object Name, DeviceID
+```
+
+**Linux/WSL**:
 ```bash
-idf.py -p PORT flash monitor
+ls /dev/ttyUSB*
+```
+
+Khi cắm cả 2 board, cần phân biệt đúng cổng của từng board trước khi flash.
+
+---
+
+## 8. Quy trình Test sau Flash
+
+1. **Cấp nguồn** cho cả 2 board.
+2. **Nối 4 dây** theo bảng mục 2.1 (BCK, WS, DOUT, GND).
+3. **Cắm tai nghe/loa** vào jack **J1 (AUDIO)** trên Waveshare board.
+4. **Kết nối Bluetooth** từ điện thoại:
+   - Mở Bluetooth → tìm thiết bị **"FOX-M4-AUDIO"** → kết nối.
+   - Log ESP32 hiện: `I (xxx) bt_sink: A2DP Connected`
+5. **Phát nhạc** từ điện thoại → âm thanh xuất ra jack 3.5mm.
+
+### Log bình thường khi hoạt động:
+
+**ESP32-WROOM-32E:**
+```
+I (xxx) bt_sink: A2DP Connected
+I (xxx) bt_sink: A2DP Streaming Started
+```
+
+**ESP32-P4:**
+```
+I (xxx) bsp_i2s: I2S0 TX→ES8311 @44.1kHz/16-bit, I2S2 RX←ESP32-BT @44.1kHz/16-bit
+I (xxx) bsp_es8311: ES8311 ready — audio plays on 3.5mm AUDIO jack (J1)
+I (xxx) app_audio: Audio forward task running on core 1
 ```
 
 ---
 
-## 5. Sử dụng Script Build Tự động (Linux/WSL)
-
-Mỗi dự án đều có sẵn file `build.sh` để tự động hóa quá trình build và copy firmware ra thư mục chung:
-
-```bash
-# Ví dụ cho ESP32-P4
-cd C_code/micro-fox-m4-esp32p4-main
-chmod +x build.sh
-./build.sh
-```
-
-Kết quả firmware (.bin) sẽ được copy vào thư mục `firmware_bin/` ở thư mục gốc của dự án.
-
----
-
-## 6. Lưu ý quan trọng
-
-*   **ESP32-P4 Flash Revision**: Một số phiên bản phần cứng ESP32-P4 có thể yêu cầu cấu hình flash cụ thể (DIO/QIO). Nếu gặp lỗi khi boot, hãy kiểm tra lại `menuconfig`.
-*   **Cổng Serial**: Khi kết nối cả hai chip vào máy tính, hãy xác định đúng cổng COM cho từng chip để tránh nạp nhầm firmware.
-*   **Nguồn điện**: Đảm bảo bo mạch được cấp đủ nguồn khi flash, đặc biệt là ESP32-P4 khi đang chạy màn hình và DSP.
-
----
-
-## 7. Hướng dẫn Kiểm tra (Test) sau khi Flash
-
-### 7.1. Kết nối phần cứng (Nếu dùng kit rời)
-Để âm thanh truyền được từ Bluetooth sang Mixer, bạn cần nối các chân I2S sau:
-
-| ESP32-WROOM (BT) | ESP32-P4 (Main) | Tín hiệu |
-| :--- | :--- | :--- |
-| **Pin 26** | **Pin 46** | I2S Bit Clock (BCK) |
-| **Pin 25** | **Pin 47** | I2S Word Select (WS) |
-| **Pin 22** | **Pin 53** | I2S Data Out (DOUT) |
-| **GND** | **GND** | Chân đất chung |
-
-### 7.2. Kết nối Màn hình OLED (SSD1306 SPI)
-Nếu bạn sử dụng màn hình OLED rời, hãy nối các chân sau vào **ESP32-P4**:
-
-| OLED (7-pin SPI) | ESP32-P4 | Tín hiệu |
-| :--- | :--- | :--- |
-| **VCC** | **3.3V** | Nguồn dương |
-| **GND** | **GND** | Chân đất chung |
-| **D0 (SCLK)** | **Pin 5** | SPI Clock |
-| **D1 (MOSI)** | **Pin 3** | SPI Data |
-| **RES (Reset)** | **Pin 14** | Reset Display |
-| **DC (Data/Cmd)** | **Pin 13** | Data/Command Select |
-| **CS** | **Pin 2** | Chip Select |
-
----
-
-### 7.3. Quy trình kiểm tra thực tế
-
-1. **Cấp nguồn cho cả 2 chip.**
-2. **Kết nối Bluetooth:**
-   - Mở Bluetooth trên điện thoại, tìm thiết bị: **"FOX-M4-AUDIO"**.
-   - Khi kết nối thành công, log của ESP32-WROOM sẽ hiện: `I (xxx) bt_sink: A2DP Connected`.
-3. **Thử nghiệm Âm thanh:**
-   - Phát nhạc từ điện thoại.
-   - ESP32-WROOM sẽ giải mã và gửi dữ liệu qua I2S tới ESP32-P4.
-   - Kiểm tra cổng ra âm thanh của ESP32-P4 (qua DAC PCM5102A).
-
----
-
-## 8. Xử lý sự cố (Troubleshooting)
+## 9. Xử lý Sự cố
 
 | Lỗi | Nguyên nhân | Giải pháp |
-| :--- | :--- | :--- |
-| `INVALID_ARG` khi init BT | Sai mode Controller | Chạy `idf.py menuconfig` -> Bluetooth -> Controller Mode -> Dual Mode. Sau đó `idf.py fullclean`. |
-| `Path is not readable` | Lỗi quyền Serial | Chạy `sudo usermod -aG dialout $USER` trong WSL. |
-| Không thấy Bluetooth | Thiếu xung I2S | ESP32-WROOM (Slave) cần xung từ ESP32-P4 (Master). Hãy đảm bảo dây BCK/WS đã nối đúng và ESP32-P4 đã khởi động. |
+|:---|:---|:---|
+| Không có âm thanh trên J1 | I2S hoặc codec chưa khởi động | Kiểm tra log: phải có `ES8311 ready` trước `I2S0 TX→ES8311` |
+| Không nghe thấy Bluetooth | ESP32 chưa nhận clock I2S | Đảm bảo ESP32-P4 khởi động trước và cắm đúng GPIO46→GPIO26, GPIO47→GPIO25 |
+| `INVALID_ARG` init BT | Sai BT Controller mode | `idf.py menuconfig` → BT Controller → **BR/EDR Only** → `fullclean` |
+| Tiếng rè/nhiễu | Format I2S không khớp | Kiểm tra ESP32 dùng `I2S_STD_MSB_SLOT_DEFAULT_CONFIG`, ESP32-P4 I2S2 cũng dùng MSB |
+| ES8311 không khởi động (`ESP_ERR_INVALID_RESPONSE`) | Lỗi I2C — sai địa chỉ hoặc dây SDA/SCL | ES8311 ở địa chỉ **0x18** trên GPIO7/GPIO8; chạy I2C scan để xác nhận |
+| `Path is not readable` (WSL) | Thiếu quyền serial | `sudo usermod -aG dialout $USER` rồi restart WSL |
 
 ---
 
-## Tài liệu bổ sung
-- Chi tiết kiến trúc Firmware: [docs/FIRMWARE_GUIDE.md](C_code/micro-fox-m4-esp32p4-main/FIRMWARE_GUIDE.md)
-- Sơ đồ Hardware: [docs/INDEX.md](docs/INDEX.md)
+## 10. Tài liệu bổ sung
+
+- Schematic Waveshare board: `ESP32-P4-WIFI6-DEV-KIT-datasheet.pdf`
+- Block diagram đầy đủ: `FOX_M4_Block_Diagram.drawio (1).pdf`
+- Khi phát triển lên hệ thống đầy đủ (mixer, DSP, OLED, SDCard): xem các component còn lại trong `C_code/micro-fox-m4-esp32p4/` (bsp_es8311, bsp_pcm5102a, audio_mixer, ui_engine, v.v.)
