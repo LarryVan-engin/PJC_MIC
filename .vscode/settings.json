@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "D:/VSCode/PJC_MIC/C_code/micro-fox-m4-esp32-bluetooth"
+  "cmake.sourceDirectory": "D:/VSCode/PJC_MIC/C_code/micro-fox-m4-esp32-bluetooth",
+  "C_Cpp.errorSquiggles": "disabled"
 }

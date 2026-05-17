@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/CMakeFiles/bootloader
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/CMakeFiles/bootloader.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/CMakeFiles/bootloader-complete.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

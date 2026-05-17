@@ -1,0 +1,2 @@
+source /mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader/gdbinit/symbols
+source /mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build/bootloader/gdbinit/connect

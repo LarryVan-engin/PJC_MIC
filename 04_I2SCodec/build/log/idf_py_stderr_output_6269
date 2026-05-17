@@ -1,0 +1,16 @@
+Command: cmake -G Ninja -B /mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec/build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/trieunguyen/.espressif/python_env/idf6.0_py3.12_env/bin/python -DESP_PLATFORM=1 -DCCACHE_ENABLE=False /mnt/c/embedded/FOX M4/PJC_MIC/04_I2SCodec
+fatal: no submodule mapping found in .gitmodules for path 'components/mqtt/esp-mqtt'
+CMake Error at /home/trieunguyen/esp-idf/tools/cmake/build.cmake:693 (message):
+  ERROR: Version solving failed:
+
+      - no versions of idf match ^5.0
+      - project depends on idf (^5.0)
+
+  Result: Because project depends on idf (^5.0) which doesn't match any
+  versions, version solving failed.
+
+Call Stack (most recent call first):
+  /home/trieunguyen/esp-idf/tools/cmake/project.cmake:741 (idf_build_process)
+  CMakeLists.txt:8 (project)
+
+

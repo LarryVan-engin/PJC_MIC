@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\ADMIN\\\\.espressif\\\\idf-component-manager\" /s /b)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Roaming\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name)"
+    ]
+  }
+}
