@@ -3,7 +3,29 @@
     "allow": [
       "Bash(dir \"C:\\\\Users\\\\ADMIN\\\\.espressif\\\\idf-component-manager\" /s /b)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Roaming\" -ErrorAction SilentlyContinue)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(grep -E \"\\\\.\\(h|c|cpp\\)$\")",
+      "Bash(xargs grep -l \"response\\\\|telemetry\\\\|flag\\\\|marker\")",
+      "Bash(xargs grep -l \"process_data_from_wan\\\\|DT\\\\|telemetry.*response\")",
+      "Bash(grep -E \"\\\\.\\(c|h\\)$\")",
+      "Bash(which idf.py 2>&1; ls \"C:/Espressif/frameworks/\" 2>&1 | head -5; ls \"C:/Users/ADMIN/esp/\" 2>&1 | head -5)",
+      "Bash(find ~/esp-idf -name \"soc.h\" 2>/dev/null | head -3 ; grep -rn \"define APP_CPU_NUM\" ~/esp-idf/components 2>/dev/null | head -5)",
+      "Bash(wsl -l -v)",
+      "Bash(wsl bash *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\embedded\\\\DATN_Workspace\\\\DA2_esp\\\\Application\" -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem -Path \"C:\\\\embedded\\\\DATN_Workspace\\\\DA2_esp\" -Recurse -File)",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(ls -la \"C:\\\\embedded\\\\DATN_Workspace\\\\DA2_esp_LAN\\\\\" | head -40)",
+      "Bash(ls -la \"C:\\\\embedded\\\\DATN_Workspace\\\\DA2_esp\\\\\" | head -40)",
+      "Bash(dir /B \"C:\\\\embedded\\\\DATN_Workspace\\\\DA2_esp_LAN\\\\Application\\\\MCU_WAN_Handler\\\\src\")",
+      "Bash(cd \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\b5305e98-b50c-48e3-b211-9eb700d9c4ad\\\\bd41c6c0-9d7c-411c-bb44-3371bdbe25f7\\\\skills\\\\xlsx\" && ls scripts/)",
+      "Bash(xargs grep -l -i \"bench\\\\|e2e\\\\|lat_ms\\\\|clk_lat\")",
+      "Bash(xargs grep -l \"bench_latency\\\\|clock_sync\")",
+      "Bash(find C:/embedded -type f \\\\\\( -name \"bench_latency*\" -o -name \"*bench*latency*\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(find C:/Espressif -name \"esp_netif_net_stack.h\" 2>/dev/null | head -3; find C:/Espressif -name \"netif.h\" -path \"*lwip*\" 2>/dev/null | head -3)",
+      "Bash(find / -name \"esp_netif_net_stack.h\" 2>/dev/null | head -3; echo \"---\"; find / -name \"netif.h\" -path \"*lwip*\" 2>/dev/null | head -3)",
+      "Bash(grep -ohE 'esp-idf[^\\\\\"\\\\\\\\\\\\\\\\]*lwip[^\\\\\"\\\\\\\\\\\\\\\\]*' C:/embedded/DATN_Workspace/DA2_esp/build/compile_commands.json)"
     ]
   }
 }
