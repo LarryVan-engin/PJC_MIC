@@ -14,7 +14,7 @@ Initialization and coordination task for ESP32-P4. Hardware: [[HW_ESP32P4]].
 
 ## Startup Sequence
 1. Init [[FW_BSP_I2C]] and [[FW_BSP_SPI]].
-2. Init `ui_engine` (SSD1306 display).
+2. Init `ui_engine` ([[HW_ILI9225]] TFT display, 176×220).
 3. Init [[FW_BSP_I2S]] — sets up I2S0/1/2, MCLK=24.576MHz on GPIO20.
 4. Init [[FW_BSP_ES8388]] — mic ADC codec, I2S Slave. **(Phase-2 fix: was incorrectly ES8311)**
 5. Init [[FW_BSP_PCM5102A]] — DAC, receives I2S1.

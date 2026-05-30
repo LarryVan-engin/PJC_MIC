@@ -1,7 +1,7 @@
 ---
 type: hub
 status: done
-last_updated: 2026-05-15
+last_updated: 2026-05-28
 ---
 
 # FOX M4 -- Knowledge Base
@@ -21,7 +21,7 @@ Tags: #done #system
 | [[HW_ES8388]] | Audio Codec (ADC/DAC Control) |
 | [[HW_PCM5102A]] | Main Audio DAC |
 | [[HW_IP5306]] | Power Management IC |
-| [[HW_SSD1306]] | OLED Display (128x64) |
+| [[HW_ILI9225]] | TFT Color Display (176×220) |
 | [[HW_SDCARD]] | SD Card Storage (FAT32) |
 | [[HW_I2S_BUS]] | I2S Routing & Port Mapping |
 | [[HW_I2C_BUS]] | I2C Bus Configuration |
@@ -37,7 +37,7 @@ Tags: #done #system
 | [[FW_AUDIO_MIXER]] | Audio Mixing Engine |
 | [[FW_DSP_EFFECTS]] | Reverb & Parametric EQ |
 | [[FW_SDCARD_MANAGER]] | SD Card File Operations |
-| [[FW_UI_ENGINE]] | OLED & Encoder Interface |
+| [[FW_UI_ENGINE]] | ILI9225 TFT & Rotary Encoder Interface |
 | [[FW_BSP_I2S]] | I2S Peripheral Driver |
 | [[FW_BSP_I2C]] | I2C Peripheral Driver |
 | [[FW_BSP_SPI]] | SPI Peripheral Driver |
